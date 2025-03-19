@@ -3,12 +3,11 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const Users = require("../models/users");
-const Wallet = require("../models/wallet");
+const Wallet = require("../models/loans");
 
 const sendMail = require("../utils/sendMail");
 const { generateWalletAddress } = require("../controllers/wallet.controllers");
 const crypto = require("crypto");
-
 
 const generateUsername = (name) => {
   const trimmedName = name.trim();
@@ -67,6 +66,7 @@ const getUserFromToken = async (req, res, next) => {
 };
 
 
+
 const Login = async (req, res, next) => {
   try {
     const user = await Users.findOne({ email: req.body.email }).exec();
@@ -103,6 +103,8 @@ const Login = async (req, res, next) => {
   }
 };
 
+
+
 const Signup = async (req, res, next) => {
   try {
     // Check if any required field is missing
@@ -138,30 +140,29 @@ const Signup = async (req, res, next) => {
 
     // Create and save the user
     const user = new Users({
-      _id: new mongoose.Types.ObjectId(),
       firstname: req.body.firstname,
       surname: req.body.surname,
       username: generateUsername(req.body.firstname),
       email: req.body.email,
       password: hash,
       contact: req.body.contact,
-      activationToken: activationToken,
-      activationTokenExpires: Date.now() + 432000000,
+      userType: "admin",
+      verified: true
     });
 
     const result = await user.save();
 
     // Send the verification code to the user's email
-    sendMail(
-      req.body.email,
-      encodeURIComponent(activationToken),
-      "MicroHub Account Activation",
-      "account-activation",
-      "Thank you for registering with MicroHub",
-      "To complete your registration and activate your account, please click on the button below",
-      "If you did not sign up for an account with MicroHub, please disregard this email.",
-      "Activate Account"
-    );
+    // sendMail(
+    //   req.body.email,
+    //   encodeURIComponent(activationToken),
+    //   "MicroHub Account Activation",
+    //   "account-activation",
+    //   "Thank you for registering with MicroHub",
+    //   "To complete your registration and activate your account, please click on the button below",
+    //   "If you did not sign up for an account with MicroHub, please disregard this email.",
+    //   "Activate Account"
+    // );
 
     res.status(201).json({
       success: true,
@@ -275,12 +276,10 @@ const forgotPassword = (req, res, next) => {
       );
 
       // Send success response
-      res
-        .status(201)
-        .json({
-          success: true,
-          message: "Reset Password email sent successfully.",
-        });
+      res.status(201).json({
+        success: true,
+        message: "Reset Password email sent successfully.",
+      });
     })
     .catch((err) => {
       // Error handling: Log and return internal server error
@@ -308,13 +307,11 @@ const resetPassword = async (req, res, next) => {
     });
 
     if (!user) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message:
-            "Invalid or expired reset token. Please request for another password reset link.",
-        });
+      return res.status(404).json({
+        success: false,
+        message:
+          "Invalid or expired reset token. Please request for another password reset link.",
+      });
     }
 
     // Hash the new password
@@ -360,15 +357,12 @@ const updatePassword = async (req, res, next) => {
     user.password = hashedPassword;
     await user.save();
 
-
     // Optionally, you can send a success message
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Password updated successfully",
-        notification: notification,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Password updated successfully",
+      notification: notification,
+    });
   } catch (error) {
     console.error("Error updating password:", error);
     return res
@@ -376,8 +370,6 @@ const updatePassword = async (req, res, next) => {
       .json({ success: false, message: "Internal server error" });
   }
 };
-
-
 
 const getCurrentUser = async (req, res, next) => {
   try {

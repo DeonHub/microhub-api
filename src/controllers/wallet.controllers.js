@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const Wallet = require("../models/wallet");
+const Wallet = require("../models/loans");
 const baseUrl = process.env.BASE_URL;
 
 const generateWalletAddress = (length) => {
@@ -13,16 +13,16 @@ const generateWalletAddress = (length) => {
 
 const getWallets = (req, res, next) => {
   const filters = []; // Initialize an array to store all filters
-  filters.push({ status: { $ne: 'deleted' } });
+  filters.push({ status: { $ne: "deleted" } });
 
   // Combine all filters into a single filter object using $and
   const filter = { $and: filters };
 
   Wallet.find(filter)
     .populate({
-        path: 'orderHistory',
-        match: { status: { $ne: 'deleted' } }, // Optional: you can add filters for orders
-        select: '-__v' // Optional: exclude the __v field from orders
+      path: "orderHistory",
+      match: { status: { $ne: "deleted" } }, // Optional: you can add filters for orders
+      select: "-__v", // Optional: exclude the __v field from orders
     })
     .exec()
     .then((wallets) => {
@@ -40,7 +40,6 @@ const getWallets = (req, res, next) => {
       });
     });
 };
-
 
 const createWallet = (req, res, next) => {
   const userId = req.user.userId;
@@ -81,11 +80,11 @@ const createWallet = (req, res, next) => {
 const getWalletById = (req, res, next) => {
   const id = req.params.walletId;
   Wallet.findById(id)
-  .populate({
-    path: 'orderHistory',
-    match: { status: { $ne: 'deleted' } },
-    select: '-__v'
-})
+    .populate({
+      path: "orderHistory",
+      match: { status: { $ne: "deleted" } },
+      select: "-__v",
+    })
     .exec()
     .then((wallet) => {
       if (wallet) {
@@ -128,7 +127,6 @@ const updateWallet = (req, res, next) => {
   // Update the updatedAt field to the current date and time
   updateOps.updatedAt = new Date();
 
-
   // Update the wallet
   Wallet.updateOne({ _id: id }, { $set: updateOps })
     .exec()
@@ -170,34 +168,33 @@ const updateWallet = (req, res, next) => {
 const getWalletByUserId = (req, res, next) => {
   const userId = req.user.userId;
 
-  Wallet.findOne({ userId: userId, status: { $ne: 'deleted' }})
-      .populate({
-          path: 'orderHistory',
-          match: { status: { $ne: 'deleted' } },
-          select: '-__v' 
-      })
-      .exec()
-      .then(wallet => {
-          if (!wallet) {
-              return res.status(404).json({
-                  success: false,
-                  message: 'Wallet not found'
-              });
-          }
-          res.status(200).json({
-              success: true,
-              wallet: wallet
-          });
-      })
-      .catch(err => {
-          console.error(err);
-          res.status(500).json({
-              success: false,
-              error: err
-          });
+  Wallet.findOne({ userId: userId, status: { $ne: "deleted" } })
+    .populate({
+      path: "orderHistory",
+      match: { status: { $ne: "deleted" } },
+      select: "-__v",
+    })
+    .exec()
+    .then((wallet) => {
+      if (!wallet) {
+        return res.status(404).json({
+          success: false,
+          message: "Wallet not found",
+        });
+      }
+      res.status(200).json({
+        success: true,
+        wallet: wallet,
       });
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({
+        success: false,
+        error: err,
+      });
+    });
 };
-
 
 const deleteWallet = (req, res, next) => {
   const id = req.params.walletId;
@@ -225,5 +222,5 @@ module.exports = {
   updateWallet,
   deleteWallet,
   generateWalletAddress,
-  getWalletByUserId
+  getWalletByUserId,
 };

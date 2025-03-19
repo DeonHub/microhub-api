@@ -2,76 +2,61 @@ const mongoose = require("mongoose");
 const KYC = require("../models/kyc");
 const baseUrl = process.env.BASE_URL;
 const Users = require("../models/users");
-const Kycs = require("../models/kyc");
-const Wallet = require("../models/wallet");
-const Currencies = require("../models/currency");
-const SupportTickets = require("../models/supportTicket");
-const Referrals = require("../models/referral");
 const Transactions = require("../models/transactions");
 const Orders = require("../models/orders");
+const Loans = require("../models/loans");
+const Officers = require("../models/officers");
 
 const getAdminDashboard = async (req, res, next) => {
     try {
-        // Get total number of users
-        const totalUsers = await Users.countDocuments({
-            $and: [
-                { isAdmin: { $ne: true } },
-                { status: { $ne: 'deleted' } }
-            ]
-        });
-        
-        const activeUsers = await Users.countDocuments({ status: 'active' });
-        const verifiedUsers = await Users.countDocuments({ verified: true });
-        const inactiveUsers = await Users.countDocuments({ status: 'inactive' });
+       // Get all users that are not admins and not deleted
+        const users = await Users.find({ isAdmin: false, status: { $ne: 'deleted' } });
+        const registeredUsers = users.length;
 
-        // Get total number of KYCs
-        const totalKycs = await Kycs.countDocuments({ status: { $ne: 'deleted' } });
-        const approvedKycs = await Kycs.countDocuments({ status: 'approved' });
-        const rejectedKycs = await Kycs.countDocuments({ status: 'rejected' });
-        const pendingKycs = await Kycs.countDocuments({ status: 'pending' });
+        // Get all loans
+        const loans = await Loans.find({ status: { $ne: 'deleted' }});
+        const totalLoans = loans.length;
 
-        // Get total number of currencies
-        const totalCurrencies = await Currencies.countDocuments({ status: { $ne: 'deleted' } });
-        const activeCurrencies = await Currencies.countDocuments({ status: 'active' });
-        const inactiveCurrencies = await Currencies.countDocuments({ status: 'inactive' });
-        const deletedCurrencies = await Currencies.countDocuments({ status: 'deleted'})
+        // get all officers
+        const officers = await Officers.find({ status: { $ne: 'deleted' } });
 
-        // get all currencies
-        const currencies = await Currencies.find({}).sort({ createdAt: -1 });
+        const totalOfficers = transactions.length;
+        // const pendingTransactions = transactions.filter(tx => tx.status === 'pending' || tx.status === 'processing').length;
+        // const cancelledTransactions = transactions.filter(tx => tx.status === 'cancelled').length;
+        // const successfulTransactions = transactions.filter(tx => tx.status === 'success').length;
 
-        // Get total number of support tickets
-        const totalTickets = await SupportTickets.countDocuments({ status: { $ne: 'deleted' } });
-        const openTickets = await SupportTickets.countDocuments({ status: 'open' });
-        const closedTickets = await SupportTickets.countDocuments({ status: 'closed' });
-        const pendingTickets = await SupportTickets.countDocuments({ status: 'pending' });
 
-        const totalTransactions = await Transactions.countDocuments({ status: { $ne: 'deleted' } });
-        const totalOrders = await Orders.countDocuments({ status: { $ne: 'deleted' } });
+        // Get all transactions
+        const transactions = await Transactions.find({ status: { $ne: 'deleted' } });
+
+        const totalTransactions = transactions.length;
+        const pendingTransactions = transactions.filter(tx => tx.status === 'pending' || tx.status === 'processing').length;
+        const cancelledTransactions = transactions.filter(tx => tx.status === 'cancelled').length;
+        const successfulTransactions = transactions.filter(tx => tx.status === 'success').length;
+
+        // Get all support tickets
+        const tickets = await SupportTickets.find({ status: { $ne: 'deleted' } });
+
+        const totalTickets = tickets.length;
+        const pendingTickets = tickets.filter(ticket => ticket.status === 'pending').length;
+        const closedTickets = tickets.filter(ticket => ticket.status === 'closed').length;
+        const openTickets = tickets.filter(ticket => ticket.status === 'open').length;
 
 
         // Return the aggregated data
         res.status(200).json({
             success: true,
             data: {
-                totalUsers,
-                activeUsers,
-                verifiedUsers,
-                inactiveUsers,
-                totalKycs,
-                approvedKycs,
-                rejectedKycs,
-                pendingKycs,
-                totalCurrencies,
-                activeCurrencies,
-                inactiveCurrencies,
-                deletedCurrencies,
-                currencies,
-                totalTickets,
-                openTickets,
-                closedTickets,
-                pendingTickets,
+                
                 totalTransactions,
-                totalOrders
+                pendingTransactions,
+                cancelledTransactions,
+                successfulTransactions,
+                totalTickets,
+                pendingTickets,
+                closedTickets,
+                openTickets,
+              
             }
         });
     } catch (err) {
@@ -82,6 +67,7 @@ const getAdminDashboard = async (req, res, next) => {
         });
     }
 };
+
 
 const getUserDashboard = async (req, res, next) => {
     try {

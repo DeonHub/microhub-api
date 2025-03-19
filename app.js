@@ -10,8 +10,14 @@ require('dotenv').config();
 // const kycRoutes = require("./src/routes/kyc.routes");
 const userRoutes = require('./src/routes/users.routes');
 const authRoutes = require('./src/routes/auth.routes');
-// const ticketRoutes = require('./src/routes/supportTicket.routes');
-// const transactionRoutes = require('./src/routes/transactions.routes');
+const officerRoutes = require('./src/routes/officer.routes');
+const clientRoutes = require('./src/routes/client.routes');
+const loanRoutes = require('./src/routes/loan.routes');
+const accountRoutes = require('./src/routes/account.routes');
+const reportRoutes = require('./src/routes/report.routes');
+const logRoutes = require('./src/routes/log.routes');
+const ticketRoutes = require('./src/routes/supportTicket.routes');
+const transactionRoutes = require('./src/routes/transactions.routes');
 
 const mode = process.env.MODE;
 let dbUser, dbPassword, uri;
@@ -56,14 +62,16 @@ app.use((req, res, next) => {
 });
 
 // Routes which should handle requests
-// app.use("/kycs", kycRoutes);
 app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
-// app.use("/tickets", ticketRoutes);
-// app.use("/dashboard", dashboardRoutes);
-// app.use("/transactions", transactionRoutes);
-// app.use("/referrals", referralsRoutes);
-// app.use("/notifications", notificationRoutes);
+app.use("/officers", officerRoutes);
+app.use("/clients", clientRoutes);
+app.use("/loans", loanRoutes);
+app.use("/accounts", accountRoutes);
+app.use("/reports", reportRoutes);
+app.use("/logs", logRoutes);
+app.use("/tickets", ticketRoutes);
+app.use("/transactions", transactionRoutes);
 
 
 
