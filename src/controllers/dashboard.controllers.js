@@ -1,62 +1,99 @@
 const mongoose = require("mongoose");
-const KYC = require("../models/kyc");
 const baseUrl = process.env.BASE_URL;
 const Users = require("../models/users");
 const Transactions = require("../models/transactions");
-const Orders = require("../models/orders");
 const Loans = require("../models/loans");
 const Officers = require("../models/officers");
+const Clients = require("../models/client");
+const Reports = require("../models/reports");
+const SupportTickets = require("../models/supportTicket");
+
 
 const getAdminDashboard = async (req, res, next) => {
     try {
-       // Get all users that are not admins and not deleted
         const users = await Users.find({ isAdmin: false, status: { $ne: 'deleted' } });
-        const registeredUsers = users.length;
-
-        // Get all loans
-        const loans = await Loans.find({ status: { $ne: 'deleted' }});
-        const totalLoans = loans.length;
-
-        // get all officers
         const officers = await Officers.find({ status: { $ne: 'deleted' } });
-
-        const totalOfficers = transactions.length;
-        // const pendingTransactions = transactions.filter(tx => tx.status === 'pending' || tx.status === 'processing').length;
-        // const cancelledTransactions = transactions.filter(tx => tx.status === 'cancelled').length;
-        // const successfulTransactions = transactions.filter(tx => tx.status === 'success').length;
-
-
-        // Get all transactions
+        const clients = await Clients.find({ status: { $ne: 'deleted' } });
+        const loans = await Loans.find({ status: { $ne: 'deleted' }});
+        const reports = await Reports.find({ status: { $ne: 'deleted' }});
         const transactions = await Transactions.find({ status: { $ne: 'deleted' } });
-
-        const totalTransactions = transactions.length;
-        const pendingTransactions = transactions.filter(tx => tx.status === 'pending' || tx.status === 'processing').length;
-        const cancelledTransactions = transactions.filter(tx => tx.status === 'cancelled').length;
-        const successfulTransactions = transactions.filter(tx => tx.status === 'success').length;
-
-        // Get all support tickets
         const tickets = await SupportTickets.find({ status: { $ne: 'deleted' } });
 
+        const totalLoans = loans.length;
+        const totalReports = reports.length;
+        const totalOfficers = officers.length;
+        const totalClients = clients.length;
+        const totalTransactions = transactions.length;
         const totalTickets = tickets.length;
-        const pendingTickets = tickets.filter(ticket => ticket.status === 'pending').length;
-        const closedTickets = tickets.filter(ticket => ticket.status === 'closed').length;
-        const openTickets = tickets.filter(ticket => ticket.status === 'open').length;
 
+        const pendingLoans = loans.filter(tx => tx.status === 'pending').length;
+        const approvedLoans = loans.filter(tx => tx.status === 'approved').length;
+        const pendingTransactions = transactions.filter(tx => tx.status === 'pending').length;
 
-        // Return the aggregated data
+        // Aggregate loans by month and status
+        const loanStats = await Loans.aggregate([
+            {
+                $match: { status: { $in: ['approved', 'pending', 'denied'] } }
+            },
+            {
+                $group: {
+                    _id: {
+                        month: { $month: "$issuedDate" },
+                        status: "$status"
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { "_id.month": 1 }
+            }
+        ]);
+
+        const formattedLoanStats = Array.from({ length: 12 }, (_, i) => ({
+            month: i + 1,
+            approved: 0,
+            pending: 0,
+            denied: 0
+        }));
+
+        loanStats.forEach(({ _id, count }) => {
+            formattedLoanStats[_id.month - 1][_id.status] = count;
+        });
+
+        // Aggregate transactions by type
+        const transactionStats = await Transactions.aggregate([
+            {
+                $group: {
+                    _id: "$transactionType",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const formattedTransactionStats = {
+            deposit: 0,
+            withdrawal: 0,
+            payment: 0
+        };
+
+        transactionStats.forEach(({ _id, count }) => {
+            formattedTransactionStats[_id] = count;
+        });
+
         res.status(200).json({
             success: true,
             data: {
-                
+                totalOfficers,
+                totalClients,
+                totalLoans,
+                totalReports,
                 totalTransactions,
-                pendingTransactions,
-                cancelledTransactions,
-                successfulTransactions,
                 totalTickets,
-                pendingTickets,
-                closedTickets,
-                openTickets,
-              
+                pendingLoans,
+                approvedLoans,
+                pendingTransactions,
+                loanStats: formattedLoanStats,
+                transactionStats: formattedTransactionStats
             }
         });
     } catch (err) {
@@ -67,6 +104,7 @@ const getAdminDashboard = async (req, res, next) => {
         });
     }
 };
+
 
 
 const getUserDashboard = async (req, res, next) => {

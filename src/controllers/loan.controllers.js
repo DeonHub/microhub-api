@@ -1,7 +1,7 @@
 const Loan = require("../models/loans");
 const mongoose = require("mongoose");
 const Client = require("../models/client");
-
+const createLog = require('../utils/createLog');
 
 // Function to calculate repayment date based on schedule
 const calculateNextPaymentDate = (issuedDate, schedule) => {
@@ -40,8 +40,9 @@ const createLoan = async (req, res) => {
       loanPurpose,
       totalAmount,
       interestRate,
-      repaymentTerm,
-      preferredPaymentSchedule
+      // repaymentTerm,
+      preferredPaymentSchedule,
+      dueDate
     } = req.body;
 
     // Calculate interest amount
@@ -50,11 +51,36 @@ const createLoan = async (req, res) => {
 
     // Compute repayment start date
     const issuedDate = new Date();
-    const dueDate = new Date(issuedDate);
-    dueDate.setFullYear(dueDate.getFullYear() + (Number(repaymentTerm) || 1));
+    // const dueDate = new Date(issuedDate);
+    // dueDate.setFullYear(dueDate.getFullYear() + (Number(repaymentTerm) || 1));
     
     const nextPaymentDate = calculateNextPaymentDate(issuedDate, preferredPaymentSchedule);
-    
+
+
+    const existingLoans = await Loan.find({ 
+      clientId, 
+      status: 'approved', 
+      paymentStatus: { $ne: 'fully_paid' } 
+    }).exec();
+
+    if (existingLoans.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Client already has an existing loan that is not fully paid" 
+      });
+    }
+
+    const pendingLoans = await Loan.find({
+      clientId,
+      status: 'pending'
+    }).exec();
+
+    if (pendingLoans.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Client already has a pending loan application"
+      });
+    }
 
     const client = await Client.findById(clientId);
     const assignedOfficer = client ? client.assignedOfficer : null;
@@ -67,18 +93,23 @@ const createLoan = async (req, res) => {
       totalAmount: totalPayable,
       amountRemaining: totalPayable,
       interestRate,
-      repaymentTerm: repaymentTerm || 1,
+      // repaymentTerm: repaymentTerm || 1,
       assignedOfficer,
       preferredPaymentSchedule,
       collateralDocument: req.file ? req.file.path : null,
       issuedDate,
       nextPaymentDate,
-      dueDate
+      dueDate,
+      status: 'pending'
     });
 
     const loan = await newLoan.save();
 
-    res.status(201).json({ success: true, message: "Loan created successfully", loan });
+    const action = "Submitted a new loan request";
+    const details = "Officer submitted a new loan request";
+    createLog(assignedOfficer, details, action);
+
+    res.status(201).json({ success: true, message: "Loan created successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
@@ -89,8 +120,20 @@ const createLoan = async (req, res) => {
 const getLoans = async (req, res) => {
   try {
     const loans = await Loan.find({ status: { $ne: "deleted" } })
-      .populate('clientId')
-      .populate('assignedOfficer')
+    .populate({
+      path: 'clientId',
+      populate: {
+        path: 'userId',
+        model: 'User'
+      }
+    })
+    .populate({
+      path: 'assignedOfficer',
+      populate: {
+        path: 'userId',
+        model: 'User'
+      }
+    })
       .exec();
 
     res.status(200).json({ success: true, count: loans.length, loans });
@@ -182,6 +225,8 @@ const updateLoan = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+
 
 // Delete loan (soft delete)
 const deleteLoan = async (req, res) => {

@@ -36,6 +36,13 @@ const createLog = (req, res, next) => {
 // Get all logs
 const getLogs = (req, res, next) => {
     Log.find()
+    .populate({
+        path: 'officerId',
+        populate: {
+          path: 'userId',
+          model: 'User'
+        }
+      })
         .exec()
         .then((logs) => {
             res.status(200).json({ success: true, count: logs.length, logs });

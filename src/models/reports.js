@@ -9,6 +9,7 @@ const reportsSchema = mongoose.Schema({
     content: { type: String },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
+    supportingDocument: { type: String },
     status: { type: String, enum: ['pending', 'approved', 'denied', 'deleted'], default: 'pending' },
 }, { timestamps: true });
 

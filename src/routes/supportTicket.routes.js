@@ -20,12 +20,13 @@ const {
 
 
 router.get("/", checkAuth, getSupportTickets);
-router.post("/", checkAuth, upload.array('files', 5), createSupportTicket);
+// router.post("/", checkAuth, upload.array('files', 5), createSupportTicket);
+router.post("/", checkAuth, upload.single('supportingDocument'), createSupportTicket);
 router.get("/x/user", checkAuth, getSupportTicketsByUserId);
 router.get("/z/officer/:officerId", checkAuth, getSupportTicketsByOfficer);
 router.get("/:ticketId", checkAuth, getSupportTicketById);
 router.patch("/:ticketId", checkAuth, updateSupportTicket);
-router.patch("/x/:ticketId", checkAuth, upload.array('files', 5), replySupportTicket);
+router.patch("/x/:ticketId", checkAuth, upload.single('supportingDocument'), replySupportTicket);
 router.delete("/:ticketId", checkAuth, deleteSupportTicket);
 
 module.exports = router;

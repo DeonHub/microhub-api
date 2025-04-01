@@ -3,6 +3,7 @@ const User = require("../models/users");
 
 const bcrypt = require("bcryptjs");
 const Officer = require("../models/officers");
+const Users = require("../models/users");
 
 
 // Generate officer id of format ofs-<random 8 digit number>
@@ -23,6 +24,7 @@ const createOfficer = async (req, res, next) => {
       nationality,
       gender,
       residentialAddress,
+      dateOfBirth,
       // Officer-specific fields
       postalAddress,
       town,
@@ -34,6 +36,17 @@ const createOfficer = async (req, res, next) => {
 
     // Hash password if contact is provided
     let hashedPassword = null;
+
+     // Check if email already exists
+     const existingUser = await Users.findOne({ email: req.body.email });
+     if (existingUser) {
+       return res.status(409).json({
+        success: false,
+         message:
+           "User with email already exists. Please use a different email address",
+       });
+     }
+
     if (contact) {
       const salt = await bcrypt.genSalt(10);
       hashedPassword = await bcrypt.hash(contact, salt);
@@ -47,8 +60,10 @@ const createOfficer = async (req, res, next) => {
       password: hashedPassword,
       contact,
       nationality,
+      dateOfBirth,
       gender,
-      userType: "officer",
+      profilePicture: req.files['profilePicture'][0]['path'],
+      role: "officer",
     });
 
     const savedUser = await newUser.save();
@@ -81,10 +96,12 @@ const createOfficer = async (req, res, next) => {
   }
 };
 
+
+
 // Get all officers (with user populated)
 const getOfficers = (req, res, next) => {
   Officer.find()
-    .populate("userId") // Populate the user data
+    .populate("userId")
     .exec()
     .then((officers) => {
       res.status(200).json({
@@ -128,10 +145,12 @@ const updateOfficer = async (req, res, next) => {
   const officerId = req.params.officerId;
   const updates = req.body;
 
+  // console.log(updates);
+
   // Define user model fields to check against
   const userUpdateKeys = [
     'firstname', 'surname', 'profilePicture',
-    'contact', 'nationality', 'gender', 'status', 'userType'
+    'contact', 'status', 'nationality'
   ];
 
   // Separate updates for user and officer dynamically
@@ -139,9 +158,11 @@ const updateOfficer = async (req, res, next) => {
   const officerUpdates = {};
 
   for (const key in updates) {
+    if (key === "_id") continue; // Prevent updating _id
+
     if (userUpdateKeys.includes(key)) {
-      if(key === 'profilePicture') {
-        userUpdates[key] = req.files['profilePicture'][0]['path'];
+      if(key === 'profilePicture' && req.file) {
+        userUpdates[key] = req.file ? req.file.path : null;
       } else {
       userUpdates[key] = updates[key];
       }

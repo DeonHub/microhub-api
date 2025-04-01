@@ -14,7 +14,7 @@ const {
 
 const checkAuth = require('../middleware/check-auth');
 
-router.post("/", checkAuth, upload.single('supportingDocument'),  createReport);
+router.post("/", checkAuth, upload.single('supportingDocument'), createReport);
 router.get("/", checkAuth, getReports);
 router.get("/:reportId", checkAuth, getReport);
 router.patch("/:reportId", checkAuth, upload.single('supportingDocument'), updateReport);

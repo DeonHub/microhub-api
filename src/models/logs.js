@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const User = require('./users');
 
 const logSchema = mongoose.Schema({
-logId: { type: String, unique: true },
+logId: { type: String },
 officerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Officer' },
 details: {  type: String },
 action: { type:String },

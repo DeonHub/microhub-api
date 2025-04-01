@@ -3,6 +3,7 @@ const User = require('./users');
 
 const accountSchema =  mongoose.Schema({
     accountId: { type: String, unique: true },
+    accountNumber: { type: String, default: "1441000000000000" },
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
     accountType: { type: String, enum: ['savings', 'current', 'fixed'], default: 'savings' },
     balance: { type: Number, default: 0 },

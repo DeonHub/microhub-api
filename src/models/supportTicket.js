@@ -24,11 +24,12 @@ const supportTicketSchema = mongoose.Schema({
     comments: { type: String, default: '' },
     feedback: { type: String, default: '' },
     status: { type: String, enum: ['open', 'closed', 'pending', 'resolved', 'deleted'], default: 'pending' },
-    files: [{ 
-        description: String,
-        originalName: String,
-        path: String,
-    }],
+    supportingDocument: { type: String },
+    // files: [{ 
+    //     description: String,
+    //     originalName: String,
+    //     path: String,
+    // }],
     replies: [replySchema],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }

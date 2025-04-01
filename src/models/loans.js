@@ -20,6 +20,7 @@ const loanSchema = mongoose.Schema({
     preferredPaymentSchedule: { type: String, enum: ['monthly', 'quarterly', 'annually', 'one_time'] },
     nextPaymentDate: { type: Date },
     dueDate: { type: Date },
+    existingLoan: { type: Boolean, default: false },
     collateralDocument: { type: String },
 
 }, { timestamps: true});

@@ -6,7 +6,7 @@ const clientSchema = mongoose.Schema({
     residentialAddress: { type: String },
     postalAddress: { type: String },
     town: { type: String },
-    maritalStatus: { type: String, enum: ['single', 'married', 'divorced', 'widowed']  },
+    maritalStatus: { type: String },
     emergencyContact: { type: String },
     employmentStatus: { type: String },
     jobTitle: { type: String },

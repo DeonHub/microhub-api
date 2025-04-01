@@ -15,7 +15,7 @@ const {
 
 
 router.get("/", checkAuth, getTransactions);
-router.post("/",  checkAuth, createTransaction);
+router.post("/",  checkAuth, upload.single('paymentProof'), createTransaction);
 router.patch("/:transactionId", checkAuth, upload.single('paymentProof'), updateTransaction);
 router.delete("/:transactionId", checkAuth, deleteTransaction);
 

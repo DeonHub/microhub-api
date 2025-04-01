@@ -1,31 +1,15 @@
 const mongoose = require("mongoose");
 const SupportTicket = require("../models/supportTicket");
 const Users = require("../models/users");
+const Officers = require("../models/officers");
 const baseUrl = process.env.BASE_URL;
 const path = require("path");
-// const createNotification = require("../utils/createNotification");
-// const sanitizeHtml = require("sanitize-html");
-// const sendMail = require("../utils/sendMail");
-
 
 const formatDate = (dateTimeString) => {
   const date = new Date(dateTimeString);
   const options = { year: "numeric", month: "long", day: "numeric" };
   return date.toLocaleDateString("en-US", options);
 };
-
-
-// const sanitizeUserInput = (userInput) => {
-//   return sanitizeHtml(userInput, {
-//     allowedTags: [
-//       "b", "i", "u", "br", "ul", "li", "ol", "em", "strong", "a", 
-//       "p", "div", "span"
-//     ],
-//     allowedAttributes: {
-//       a: ["href", "target"]
-//     },
-//   });
-// };
 
 const generateTicketId = (length) => {
   const characters = "0123456789";
@@ -45,7 +29,13 @@ const getSupportTickets = (req, res, next) => {
   const filter = { $and: filters };
 
   SupportTicket.find(filter)
-    // .sort({ createdAt: -1 })
+  .populate({
+    path: 'officerId',
+    populate: {
+      path: 'userId',
+      model: 'User'
+    }
+  })
     .exec()
     .then((tickets) => {
       res.status(200).json({
@@ -65,60 +55,23 @@ const getSupportTickets = (req, res, next) => {
 
 const createSupportTicket = async (req, res, next) => {
   const userId = req.user.userId;
-  const files = req.files ? req.files : [];
-  let descriptions = req.body.descriptions ? req.body.descriptions : [];
-
-  // Ensure descriptions is always an array
-  if (!Array.isArray(descriptions)) {
-    descriptions = [descriptions];
-  }
-
-  let fileMetadata = [];
-
-  if (files.length !== 0) {
-    // Ensure that the number of files matches the number of descriptions
-    if (files.length !== descriptions.length) {
-      return res.status(400).json({
-        success: false,
-        message: "Number of files does not match the number of descriptions",
-      });
-    }
-
-    // Extract file metadata and descriptions and store them in an array
-    fileMetadata = files.map((file, index) => {
-      let filePath = file.path;
-      if (!filePath.startsWith("http")) {
-        filePath = path.relative(path.join(__dirname, "../.."), filePath);
-      }
-
-      return {
-        originalName: file.originalname,
-        path: filePath,
-        description: descriptions[index],
-      };
-    });
-  }
+  const officer = await Officers.find({ userId }).exec();
 
   // Example ticket creation
   const ticket = new SupportTicket({
     _id: new mongoose.Types.ObjectId(),
     ticketId: generateTicketId(8),
-    officerId: req.body.officerId,
+    officerId: officer,
     subject: req.body.subject,
     message: req.body.message,
     category: req.body.category,
-    files: files.length > 0 ? fileMetadata : [],
+    supportingDocument: req.file ? req.file.path : null
   });
 
   await ticket
     .save()
     .then((result) => {
       // Create notification for user
-      const subject = "Support Ticket Created";
-      const message = `Your support ticket ${ticket.ticketId} has been created successfully. We will get back to you soon.`;
-      // createNotification(userId, subject, message);
-
-
       res.status(201).json({
         success: true,
         message: "Support ticket created successfully",
@@ -139,43 +92,10 @@ const createSupportTicket = async (req, res, next) => {
 const replySupportTicket = async (req, res, next) => {
   const userId = req.user.userId;
   const ticketId = req.params.ticketId;
-  const files = req.files ? req.files : [];
-  let descriptions = req.body.descriptions ? req.body.descriptions : [];
-
-  // Ensure descriptions is always an array
-  if (!Array.isArray(descriptions)) {
-    descriptions = [descriptions];
-  }
-
-  let fileMetadata = [];
-
-  if (files.length !== 0) {
-    // Ensure that the number of files matches the number of descriptions
-    if (files.length !== descriptions.length) {
-      return res.status(400).json({
-        success: false,
-        message: "Number of files does not match the number of descriptions",
-      });
-    }
-
-    // Extract file metadata and descriptions and store them in an array
-    fileMetadata = files.map((file, index) => {
-      let filePath = file.path;
-      if (!filePath.startsWith("http")) {
-        filePath = path.relative(path.join(__dirname, "../.."), filePath);
-      }
-
-      return {
-        originalName: file.originalname,
-        path: filePath,
-        description: descriptions[index],
-      };
-    });
-  }
 
   try {
     // Find the support ticket by ID
-    const ticket = await SupportTicket.findById(ticketId).populate('userId').exec();
+    const ticket = await SupportTicket.findById(ticketId).exec();
     if (!ticket) {
       return res.status(404).json({
         success: false,
@@ -187,8 +107,7 @@ const replySupportTicket = async (req, res, next) => {
     const reply = {
       authorId: userId,
       role: req.body.role,
-      message: req.body.message,
-      files: files.length > 0 ? fileMetadata : [],
+      message: req.body.message
     };
 
     ticket.replies.push(reply);
@@ -196,15 +115,6 @@ const replySupportTicket = async (req, res, next) => {
     ticket.updatedAt = Date.now();
 
     await ticket.save();
-
-    // Create notification for user if the reply is not from the user
-    if (ticket.userId._id.toString() !== userId.toString()) {
-      const subject = "Support Ticket Reply";
-      const message = `You have a new reply on your support ticket ${ticket.ticketId}. Please check the ticket for details.`;
-      // createNotification(ticket.userId._id, subject, message);
-
-
-    }
 
 
     res.status(201).json({
@@ -225,7 +135,13 @@ const replySupportTicket = async (req, res, next) => {
 const getSupportTicketById = (req, res, next) => {
   const id = req.params.ticketId;
   SupportTicket.findById(id)
-    .populate("userId")
+  .populate({
+    path: 'officerId',
+    populate: {
+      path: 'userId',
+      model: 'User'
+    }
+  })
     .exec()
     .then((ticket) => {
       if (ticket) {
@@ -309,18 +225,14 @@ const updateSupportTicket = (req, res, next) => {
       }
 
       // Create notification for user
-      const subject = "Support Ticket Updated";
-      const message = `Your support ticket ${ticket.ticketId} has been updated successfully. Check the status for more details.`;
-      createNotification(userId, subject, message);
+      // const subject = "Support Ticket Updated";
+      // const message = `Your support ticket ${ticket.ticketId} has been updated successfully. Check the status for more details.`;
+      // createNotification(userId, subject, message);
 
       res.status(200).json({
         success: true,
         message: "Support ticket updated successfully",
-        ticket: ticket,
-        request: {
-          type: "GET",
-          url: `${baseUrl}/tickets/${id}`,
-        },
+        ticket: ticket
       });
     })
     .catch((err) => {

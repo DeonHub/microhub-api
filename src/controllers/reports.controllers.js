@@ -1,4 +1,7 @@
 const Report = require('../models/reports');
+const Officers = require('../models/officers');
+const createLog = require('../utils/createLog');
+
 
 
 const generateReportId = (length) => {
@@ -15,16 +18,26 @@ const generateReportId = (length) => {
 // Create a new report
 const createReport = async (req, res) => {
     try {
+        const userId = req.user.userId;
+
+        // find the officer with that userId
+        const officer = await Officers.find({ userId }).exec();
+
         const { title, submittedBy, reportType, content } = req.body;
         
         const newReport = new Report({
             reportId: generateReportId(12),
             title,
-            submittedBy,
+            submittedBy: officer ? officer : submittedBy,
             reportType,
             content,
             supportingDocument: req.file ? req.file.path : null
         });
+
+      // Create a log for officer
+      const action = "Submitted a new report";
+      const details = "Officer submitted a new report";
+      createLog(officer, details, action);
 
         await newReport.save();
         res.status(201).json({ success: true, message: "Report created successfully", report: newReport });
@@ -37,7 +50,14 @@ const createReport = async (req, res) => {
 // Get all reports
 const getReports = async (req, res) => {
     try {
-        const reports = await Report.find({ status: { $ne: "deleted" } }).exec();
+        const reports = await Report.find({ status: { $ne: "deleted" } })
+        .populate({
+        path: 'submittedBy',
+        populate: {
+            path: 'userId',
+            model: 'User'
+        }
+    }).exec();
         res.status(200).json({ success: true, count: reports.length, reports });
     } catch (error) {
         console.error(error);

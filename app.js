@@ -18,6 +18,7 @@ const reportRoutes = require('./src/routes/report.routes');
 const logRoutes = require('./src/routes/log.routes');
 const ticketRoutes = require('./src/routes/supportTicket.routes');
 const transactionRoutes = require('./src/routes/transactions.routes');
+const dashboardRoutes = require('./src/routes/dashboard.routes');
 
 const mode = process.env.MODE;
 let dbUser, dbPassword, uri;
@@ -62,6 +63,7 @@ app.use((req, res, next) => {
 });
 
 // Routes which should handle requests
+app.use("/dashboard", dashboardRoutes);
 app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
 app.use("/officers", officerRoutes);

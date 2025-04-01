@@ -4,6 +4,7 @@ const User = require("../models/users");
 const bcrypt = require("bcryptjs");
 const Client = require("../models/client");
 const Account = require("../models/accounts");
+const Officers = require("../models/officers");
 
 
 // Generate client id of format ofs-<random 8 digit number>
@@ -20,6 +21,7 @@ const createClient = async (req, res, next) => {
       surname,
       email,
       contact,
+      dateOfBirth,
       nationality,
       gender,
       residentialAddress,
@@ -36,6 +38,18 @@ const createClient = async (req, res, next) => {
       assignedOfficer
     } = req.body;
 
+    // console.log(req.body)
+
+    const existingUser = await User.findOne({ email: req.body.email });
+     if (existingUser) {
+       return res.status(409).json({
+        success: false,
+         message:
+           "User with email already exists. Please use a different email address",
+       });
+     }
+
+
     // Hash password if contact is provided
     let hashedPassword = null;
     if (contact) {
@@ -48,12 +62,13 @@ const createClient = async (req, res, next) => {
       firstname,
       surname,
       email,
+      dateOfBirth,
       profilePicture: req.files['profilePicture'][0]['path'],
       password: hashedPassword,
       contact,
       nationality,
       gender,
-      userType: "client",
+      role: "client",
     });
 
     const savedUser = await newUser.save();
@@ -90,9 +105,21 @@ const createClient = async (req, res, next) => {
       return `ACC${accountId}`;
     };
 
+    const generateAccountNumber = (length) => {
+      const chars = '0123456789';
+      let accountNumber = '';
+      for (let i = 0; i < length; i++) {
+        accountNumber += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return `14410000${accountNumber}`;
+    }
+
+
+
     // Create Account for Client
     const newAccount = new Account({
       accountId: generateAccountId(10),
+      accountNumber: generateAccountNumber(8),
       clientId: savedClient._id
     });
 
@@ -116,6 +143,14 @@ const createClient = async (req, res, next) => {
 const getClients = (req, res, next) => {
   Client.find()
     .populate("userId") // Populate the user data
+    .populate("assignedOfficer")
+    .populate({
+      path: 'assignedOfficer',
+      populate: {
+        path: 'userId',
+        model: 'User'
+      }
+    })
     .exec()
     .then((clients) => {
       res.status(200).json({
@@ -129,6 +164,28 @@ const getClients = (req, res, next) => {
       res.status(500).json({ success: false, error: err });
     });
 };
+
+// get clients by assigned officer id
+const getClientsByOfficer = async (req, res, next) => {
+  const officerId = req.params.officerId;
+  const officer = await Officers.findOne({ userId: officerId });
+
+  try {
+    const clients = await Client.find({ assignedOfficer: officer._id })
+      .populate("userId")
+      // .populate("assignedOfficer")
+      .exec();
+
+    res.status(200).json({
+      success: true,
+      count: clients.length,
+      clients,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+}
 
 // Get client by ID
 const getClient = async (req, res, next) => {
@@ -162,7 +219,7 @@ const updateClient = async (req, res, next) => {
   // Define user model fields to check against
   const userUpdateKeys = [
     'firstname', 'surname', 'profilePicture',
-    'contact', 'nationality', 'gender', 'status', 'userType'
+    'contact', 'status', 'nationality'
   ];
 
   // Separate updates for user and client dynamically
@@ -170,9 +227,11 @@ const updateClient = async (req, res, next) => {
   const clientUpdates = {};
 
   for (const key in updates) {
+    if (key === "_id") continue; // Prevent updating _id
+
     if (userUpdateKeys.includes(key)) {
-      if(key === 'profilePicture') {
-        userUpdates[key] = req.files['profilePicture'][0]['path'];
+      if(key === 'profilePicture' && req.file) {
+        userUpdates[key] = req.file ? req.file.path : null;
       } else {
       userUpdates[key] = updates[key];
       }
@@ -250,6 +309,7 @@ module.exports = {
   createClient,
   getClients,
   getClient,
+  getClientsByOfficer,
   updateClient,
   deleteClient,
 };
