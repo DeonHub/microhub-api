@@ -2,6 +2,8 @@ const Transaction = require('../models/transactions');
 const Account = require('../models/accounts');
 const Loan = require('../models/loans');
 const Client = require('../models/client');
+const Officers = require('../models/officers');
+const Transactions = require('../models/transactions');
 
 
 const generateOrderId = () => {
@@ -201,6 +203,30 @@ const calculateNextPaymentDate = (currentDate, schedule) => {
       res.status(500).json({ success: false, error: 'Internal server error' });
     }
   };
+
+
+  // get transactions by assigned officer
+const getTransactionsByOfficer = async (req, res) => {
+  const officerId = req.params.officerId;
+  const officer = await Officers.findOne({ userId: officerId });
+
+  try {
+    const transactions = await Transactions.find({ officerId: officer._id })
+    .populate({
+      path: 'clientId',
+      populate: {
+        path: 'userId',
+        model: 'User'
+      }
+    })
+      .exec();
+
+    res.status(200).json({ success: true, count: transactions.length, transactions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
   
   
   // ✅ Delete a transaction
@@ -221,6 +247,7 @@ module.exports = {
     createTransaction,
     getTransactions,
     getTransaction,
+    getTransactionsByOfficer,
     updateTransaction,
     deleteTransaction
 };

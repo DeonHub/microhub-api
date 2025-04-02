@@ -8,6 +8,7 @@ const upload = fileUpload("barterFunds/transactionFiles");
 
 const { 
   getTransactions,
+  getTransactionsByOfficer,
   createTransaction,
   updateTransaction,
   deleteTransaction,
@@ -15,6 +16,7 @@ const {
 
 
 router.get("/", checkAuth, getTransactions);
+router.get("/officer/:officerId", checkAuth, getTransactionsByOfficer);
 router.post("/",  checkAuth, upload.single('paymentProof'), createTransaction);
 router.patch("/:transactionId", checkAuth, upload.single('paymentProof'), updateTransaction);
 router.delete("/:transactionId", checkAuth, deleteTransaction);

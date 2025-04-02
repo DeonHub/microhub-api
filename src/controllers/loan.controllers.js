@@ -2,6 +2,7 @@ const Loan = require("../models/loans");
 const mongoose = require("mongoose");
 const Client = require("../models/client");
 const createLog = require('../utils/createLog');
+const Officers = require("../models/officers");
 
 // Function to calculate repayment date based on schedule
 const calculateNextPaymentDate = (issuedDate, schedule) => {
@@ -166,12 +167,19 @@ const getLoan = async (req, res) => {
 
 
 // get loan by assigned officer
-const getLoansByOfficerId = async (req, res) => {
+const getLoansByOfficer = async (req, res) => {
   const officerId = req.params.officerId;
+  const officer = await Officers.findOne({ userId: officerId });
+
   try {
-    const loans = await Loan.find({ assignedOfficer: officerId })
-      .populate('clientId')
-      .populate('assignedOfficer')
+    const loans = await Loan.find({ assignedOfficer: officer._id })
+    .populate({
+      path: 'clientId',
+      populate: {
+        path: 'userId',
+        model: 'User'
+      }
+    })
       .exec();
 
     res.status(200).json({ success: true, count: loans.length, loans });
@@ -248,7 +256,7 @@ module.exports = {
   createLoan,
   getLoans,
   getLoan,
-  getLoansByOfficerId,
+  getLoansByOfficer,
   updateLoan,
   deleteLoan
 };

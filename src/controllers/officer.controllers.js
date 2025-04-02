@@ -140,6 +140,30 @@ const getOfficer = async (req, res, next) => {
   }
 };
 
+
+const getOfficerProfile = async (req, res, next) => {
+  const userId = req.user.userId;
+
+  try {
+    const officer = await Officer.findOne({ userId }).populate("userId").exec();
+
+    if (!officer) {
+      return res.status(404).json({
+        success: false,
+        message: "Officer not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      officer,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+};
+
 // Update Officer (dynamically updating officer and linked user fields)
 const updateOfficer = async (req, res, next) => {
   const officerId = req.params.officerId;
@@ -242,4 +266,5 @@ module.exports = {
   getOfficer,
   updateOfficer,
   deleteOfficer,
+  getOfficerProfile
 };

@@ -7,7 +7,7 @@ const {
      createLoan,
      getLoans,
      getLoan,
-     getLoansByOfficerId,
+     getLoansByOfficer,
      updateLoan,
      deleteLoan
 } = require('../controllers/loan.controllers'); 
@@ -16,7 +16,7 @@ const checkAuth = require('../middleware/check-auth');
 
 router.post("/", checkAuth, upload.single('collateralDocument'),  createLoan);
 router.get("/", checkAuth, getLoans);
-router.get("/x/:officerId", checkAuth, getLoansByOfficerId);
+router.get("/officer/:officerId", checkAuth, getLoansByOfficer);
 router.get("/:loanId", checkAuth, getLoan);
 router.patch("/:loanId", checkAuth, updateLoan);
 router.delete("/:loanId", checkAuth, deleteLoan);

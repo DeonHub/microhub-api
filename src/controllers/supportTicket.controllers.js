@@ -55,7 +55,7 @@ const getSupportTickets = (req, res, next) => {
 
 const createSupportTicket = async (req, res, next) => {
   const userId = req.user.userId;
-  const officer = await Officers.find({ userId }).exec();
+  const officer = await Officers.findOne({ userId }).exec();
 
   // Example ticket creation
   const ticket = new SupportTicket({
@@ -285,11 +285,12 @@ const getSupportTicketsByUserId = (req, res, next) => {
     });
 };
 
-const getSupportTicketsByOfficer = (req, res, next) => {
+const getSupportTicketsByOfficer = async (req, res, next) => {
   const officerId = req.params.officerId;
+  const officer = await Officers.findOne({ userId: officerId });
 
   // SupportTicket.find({ userId: userId, status: { $ne: 'deleted' } })
-  SupportTicket.find({ officerId: officerId, status: { $ne: "deleted" } })
+  SupportTicket.find({ officerId: officer, status: { $ne: "deleted" } })
     .exec()
     .then((tickets) => {
       res.status(200).json({

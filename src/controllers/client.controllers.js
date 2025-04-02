@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const Client = require("../models/client");
 const Account = require("../models/accounts");
 const Officers = require("../models/officers");
+const Users = require("../models/users");
 
 
 // Generate client id of format ofs-<random 8 digit number>
@@ -49,6 +50,20 @@ const createClient = async (req, res, next) => {
        });
      }
 
+     let assignedOfficerx;
+
+     try{
+      const user = await Users.findById(assignedOfficer);
+      if(user){
+        assignedOfficerx = await Officers.findOne({ userId: assignedOfficer });
+      } else {
+        assignedOfficerx = assignedOfficer;
+      }
+     } catch {
+      assignedOfficerx = assignedOfficer;
+      console.log("Error")
+     }
+
 
     // Hash password if contact is provided
     let hashedPassword = null;
@@ -90,7 +105,7 @@ const createClient = async (req, res, next) => {
       jobTitle,
       monthlyIncome,
       otherIncome,
-      assignedOfficer
+      assignedOfficer: assignedOfficerx ? assignedOfficerx : null
     });
 
     const savedClient = await newClient.save();

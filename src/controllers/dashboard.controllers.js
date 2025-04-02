@@ -107,39 +107,29 @@ const getAdminDashboard = async (req, res, next) => {
 
 
 
-const getUserDashboard = async (req, res, next) => {
+const getOfficerDashboard = async (req, res, next) => {
     try {
         const userId = req.user.userId;
+        const officer = await Officers.findOne({ userId });
 
-        // Get the user's referral code
-        const user = await Users.findById(userId);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-        const referralCode = user.referralCode;
+        const clients = await Clients.find({ assignedOfficer: officer._id, status: { $ne: 'deleted' } });
+        const loans = await Loans.find({ assignedOfficer: officer._id, status: { $ne: 'deleted' } });
+        const transactions = await Transactions.find({ officerId: officer._id, status: { $ne: 'deleted' } });
+        const reports = await Reports.find({ submittedBy: officer._id, status: { $ne: 'deleted' } });
 
-        // Get all currencies
-        const currencies = await Currencies.find({}).limit(9);
-
-        // Get the user's wallet
-        const wallet = await Wallet.findOne({ userId: userId, status: { $ne: 'deleted' }})
-            .populate({
-                path: 'orderHistory',
-                match: { status: { $ne: 'deleted' } },
-                select: '-__v'
-            })
-            .exec();
-
-        // Get all referrals using the user's referral code
-        const referrals = await Referrals.countDocuments({ referralCode: referralCode });
+        const totalClients = clients.length;
+        const totalLoans = loans.length;
+        const totalTransactions = transactions.length;
+        const totalReports = reports.length;
 
         // Return the aggregated data
         res.status(200).json({
             success: true,
-            info: {
-                currencies: currencies,
-                wallet: wallet || {},
-                referrals: referrals
+            data: {
+                totalClients,
+                totalLoans,
+                totalTransactions,
+                totalReports
             }
         });
     } catch (err) {
@@ -154,5 +144,5 @@ const getUserDashboard = async (req, res, next) => {
 
 module.exports = {
     getAdminDashboard,
-    getUserDashboard
+    getOfficerDashboard
 };

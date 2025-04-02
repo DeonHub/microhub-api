@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
-const Account = require("../models/accounts")
+const Accounts = require("../models/accounts")
+const Users = require("../models/users");
+const Officers = require("../models/officers");
+const Clients = require("../models/client");
+
 
 const generateAccountId = (length) => {
     const characters = '0123456789';
@@ -15,7 +19,7 @@ const generateAccountId = (length) => {
 const createAccount = (req, res, next) => {
     const { userId, accountType, balance, status } = req.body;
   
-    const newAccount = new Account({
+    const newAccount = new Accounts({
       accountId: generateAccountId(8),
       userId,
       accountType,
@@ -26,7 +30,7 @@ const createAccount = (req, res, next) => {
     newAccount
       .save()
       .then((account) => {
-        res.status(201).json({ success: true, message: "Account created", account });
+        res.status(201).json({ success: true, message: "Accounts created", account });
       })
       .catch((err) => {
         console.error(err);
@@ -43,7 +47,7 @@ const getAccounts = (req, res, next) => {
 
   const filter = { $and: filters };
 
-  Account.find(filter)
+  Accounts.find(filter)
   .populate({
     path: 'clientId',
     populate: {
@@ -69,7 +73,7 @@ const getAccounts = (req, res, next) => {
 const getAccount = async (req, res, next) => {
   const accountId = req.params.accountId;
   try {
-    const account = await Account.findById(accountId).exec();
+    const account = await Accounts.findById(accountId).exec();
     if (!account) {
       return res.status(404).json({
         success: false,
@@ -83,6 +87,40 @@ const getAccount = async (req, res, next) => {
   }
 };
 
+const getAccountsByOfficer = async (req, res, next) => {
+  try {
+    const officerId = req.params.officerId;
+    const officer = await Officers.findOne({ userId: officerId });
+
+    if (!officer) {
+      return res.status(404).json({ success: false, message: "Officer not found" });
+    }
+
+    const clients = await Clients.find({ assignedOfficer: officer._id }).select("_id");
+    const clientIds = clients.map(client => client._id);
+
+    const accounts = await Accounts.find({ clientId: { $in: clientIds } })
+    .populate({
+      path: 'clientId',
+      populate: {
+        path: 'userId',
+        model: 'User'
+      }
+    })
+      .exec();
+
+    res.status(200).json({
+      success: true,
+      count: accounts.length,
+      accounts,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+};
+
+
 // Update an account
 const updateAccount = (req, res, next) => {
   const accountId = req.params.accountId;
@@ -94,15 +132,15 @@ const updateAccount = (req, res, next) => {
     }
   }
 
-  Account.updateOne({ _id: accountId }, { $set: updateOps })
+  Accounts.updateOne({ _id: accountId }, { $set: updateOps })
     .exec()
     .then(() => {
-      return Account.findById(accountId).exec();
+      return Accounts.findById(accountId).exec();
     })
     .then((account) => {
       res.status(200).json({
         success: true,
-        message: "Account updated",
+        message: "Accounts updated",
         account,
       });
     })
@@ -115,10 +153,10 @@ const updateAccount = (req, res, next) => {
 // Delete an account
 const deleteAccount = (req, res, next) => {
   const accountId = req.params.accountId;
-  Account.deleteOne({ _id: accountId })
+  Accounts.deleteOne({ _id: accountId })
     .exec()
     .then(() => {
-      res.status(200).json({ success: true, message: "Account deleted" });
+      res.status(200).json({ success: true, message: "Accounts deleted" });
     })
     .catch((err) => {
       console.log(err);
@@ -130,6 +168,7 @@ module.exports = {
   createAccount,
   getAccounts,
   getAccount,
+  getAccountsByOfficer,
   updateAccount,
   deleteAccount,
 };

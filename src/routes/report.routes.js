@@ -8,7 +8,7 @@ const {
      getReports,
      getReport,
      updateReport,
-     getReportsByOfficerId,
+     getReportsByOfficer,
      deleteReport
 } = require('../controllers/reports.controllers'); 
 
@@ -19,7 +19,7 @@ router.get("/", checkAuth, getReports);
 router.get("/:reportId", checkAuth, getReport);
 router.patch("/:reportId", checkAuth, upload.single('supportingDocument'), updateReport);
 router.delete("/:reportId", checkAuth, deleteReport);
-router.get("/x/:officerId", checkAuth, getReportsByOfficerId);
+router.get("/officer/:officerId", checkAuth, getReportsByOfficer);
 
 
 module.exports = router;

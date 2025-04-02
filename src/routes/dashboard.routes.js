@@ -8,12 +8,12 @@ const upload = fileUpload("barterFunds/kycImages");
 
 const { 
     getAdminDashboard,
-    getUserDashboard,
+    getOfficerDashboard,
    } = require('../controllers/dashboard.controllers');
 
 
 router.get("/admin", checkAuth, getAdminDashboard);
-// router.get("/user", checkAuth, getUserDashboard);
+router.get("/officer", checkAuth, getOfficerDashboard);
 // router.post("/", checkAuth, upload.fields([ { name: 'frontImage', maxCount: 1 },  { name: 'backImage', maxCount: 1 }, { name: 'photograph', maxCount: 1 }, { name: 'proofOfAddress', maxCount: 1 } ]), addKYC);
 // router.get("/:kycId", checkAuth, getKYCById);
 // router.get("/:userId", checkAuth, getKYCByUserId);
